@@ -11,6 +11,8 @@
 
 ## 👉 [Use it live](https://hacking-robot.github.io/bmad-viewer/)
 
+*Compatible with Chrome only (requires File System Access API)*
+
 ---
 
 <img src="assets/screenshot1.png" alt="BMad Viewer Screenshot" width="100%">
