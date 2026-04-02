@@ -105,6 +105,11 @@ interface AppState {
   openArtifactViewer: (file: ArtifactViewerTarget, scrollTo?: string) => void;
   closeArtifactViewer: () => void;
 
+  zoomLevel: number;
+  setZoomLevel: (level: number) => void;
+  jiraDomain: string;
+  setJiraDomain: (domain: string) => void;
+
   getFilteredStories: () => Story[];
 }
 
@@ -121,7 +126,17 @@ export const useStore = create<AppState>()(
           themeMode: state.themeMode === "light" ? "dark" : "light",
         })),
       colorTheme: "gruvbox-dark",
-      setColorTheme: (theme) => set({ colorTheme: theme }),
+      setColorTheme: (theme) =>
+        set((state) => ({
+          colorTheme: theme,
+          recentProjects: state.projectName
+            ? state.recentProjects.map((p) =>
+                p.name === state.projectName
+                  ? { ...p, colorTheme: theme }
+                  : p,
+              )
+            : state.recentProjects,
+        })),
 
       projectName: null,
       projectType: null,
@@ -235,6 +250,14 @@ export const useStore = create<AppState>()(
       closeArtifactViewer: () =>
         set({ artifactViewerFile: null, artifactViewerScrollTo: null }),
 
+      zoomLevel: 100,
+      setZoomLevel: (level) => {
+        const clamped = Math.max(50, Math.min(200, level));
+        set({ zoomLevel: clamped });
+      },
+      jiraDomain: "",
+      setJiraDomain: (domain) => set({ jiraDomain: domain }),
+
       getFilteredStories: () => {
         const { stories, selectedEpicId, epics, searchQuery } = get();
         let filtered = stories;
@@ -268,6 +291,8 @@ export const useStore = create<AppState>()(
         collapsedColumnsByEpic: state.collapsedColumnsByEpic,
         recentProjects: state.recentProjects,
         storyOrder: state.storyOrder,
+        zoomLevel: state.zoomLevel,
+        jiraDomain: state.jiraDomain,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

@@ -184,7 +184,11 @@ export default function StoryDialog() {
               <Chip
                 label={selectedStory.jiraKey}
                 size="small"
-                sx={{ fontWeight: 600, bgcolor: '#1976d2', color: 'white' }}
+                onClick={() => {
+                  const domain = useStore.getState().jiraDomain
+                  if (domain) window.open(`https://${domain}/browse/${selectedStory.jiraKey}`, '_blank')
+                }}
+                sx={{ fontWeight: 600, bgcolor: '#1976d2', color: 'white', cursor: useStore.getState().jiraDomain ? 'pointer' : 'default' }}
               />
             )}
             {selectedStory.assignee && (

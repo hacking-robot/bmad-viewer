@@ -1,7 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import {
   IconButton,
   Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -9,55 +13,144 @@ import {
   Button,
   Box,
   Typography,
-  TextField
+  TextField,
+  Slider,
 } from '@mui/material'
 import SettingsIcon from '@mui/icons-material/Settings'
 import CloseIcon from '@mui/icons-material/Close'
+import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings'
+import PaletteIcon from '@mui/icons-material/Palette'
+import ZoomInIcon from '@mui/icons-material/ZoomIn'
+import ChevronRightIcon from '@mui/icons-material/ChevronRight'
+import LinkIcon from '@mui/icons-material/Link'
 import { useStore } from '../../store'
 import { themeList, base24Schemes } from '../../data/themes'
 
 export default function SettingsMenu() {
-  const [open, setOpen] = useState(false)
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [displaySubAnchor, setDisplaySubAnchor] = useState<null | HTMLElement>(null)
+  const [themePickerOpen, setThemePickerOpen] = useState(false)
+  const [zoomDialogOpen, setZoomDialogOpen] = useState(false)
+  const [jiraDialogOpen, setJiraDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const themeBeforePreview = useRef<string | null>(null)
 
   const colorTheme = useStore((state) => state.colorTheme)
   const setColorTheme = useStore((state) => state.setColorTheme)
+  const zoomLevel = useStore((state) => state.zoomLevel)
+  const setZoomLevel = useStore((state) => state.setZoomLevel)
+  const jiraDomain = useStore((state) => state.jiraDomain)
+  const setJiraDomain = useStore((state) => state.setJiraDomain)
+  const [jiraInput, setJiraInput] = useState('')
 
-  const handleOpen = () => {
-    themeBeforePreview.current = colorTheme
-    setSearchQuery('')
-    setOpen(true)
+  const open = Boolean(anchorEl)
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget)
   }
 
-  const handleCancel = () => {
+  const handleClose = () => {
+    setAnchorEl(null)
+    setDisplaySubAnchor(null)
+  }
+
+  const closeAllSubs = useCallback(() => {
+    setDisplaySubAnchor(null)
+  }, [])
+
+  const openSub = useCallback((setter: (el: HTMLElement | null) => void) => (e: React.MouseEvent<HTMLElement>) => {
+    closeAllSubs()
+    setter(e.currentTarget)
+  }, [closeAllSubs])
+
+  const handleThemePickerOpen = () => {
+    setDisplaySubAnchor(null)
+    handleClose()
+    themeBeforePreview.current = colorTheme
+    setSearchQuery('')
+    setThemePickerOpen(true)
+  }
+
+  const handleThemePickerClose = () => {
     if (themeBeforePreview.current) {
       setColorTheme(themeBeforePreview.current)
       themeBeforePreview.current = null
     }
-    setOpen(false)
+    setThemePickerOpen(false)
   }
 
-  const handleSave = () => {
+  const handleThemePickerSave = () => {
     themeBeforePreview.current = null
-    setOpen(false)
+    setThemePickerOpen(false)
   }
 
   return (
     <>
-      <Tooltip title="Theme Settings">
-        <IconButton
-          onClick={handleOpen}
-          size="small"
-          sx={{ color: 'text.secondary' }}
-        >
+      <Tooltip title="Settings">
+        <IconButton onClick={handleClick} size="small" sx={{ color: 'text.secondary' }}>
           <SettingsIcon />
         </IconButton>
       </Tooltip>
 
-      <Dialog
+      <Menu
+        anchorEl={anchorEl}
         open={open}
-        onClose={handleCancel}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{ paper: { sx: { minWidth: 220, mt: 1 } } }}
+      >
+        <MenuItem onClick={openSub(setDisplaySubAnchor)}>
+          <ListItemIcon><DisplaySettingsIcon fontSize="small" /></ListItemIcon>
+          <ListItemText
+            primary="Display"
+            secondary={base24Schemes[colorTheme]?.name || colorTheme}
+            secondaryTypographyProps={{ variant: 'caption' }}
+          />
+          <ChevronRightIcon fontSize="small" sx={{ color: 'text.secondary', ml: 1 }} />
+        </MenuItem>
+
+        <MenuItem onClick={() => { handleClose(); setJiraInput(jiraDomain); setJiraDialogOpen(true) }}>
+          <ListItemIcon><LinkIcon fontSize="small" /></ListItemIcon>
+          <ListItemText
+            primary="Jira Domain"
+            secondary={jiraDomain || 'Not set'}
+            secondaryTypographyProps={{ variant: 'caption' }}
+          />
+        </MenuItem>
+      </Menu>
+
+      {/* Display Submenu */}
+      <Menu
+        anchorEl={displaySubAnchor}
+        open={Boolean(displaySubAnchor)}
+        onClose={() => setDisplaySubAnchor(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        slotProps={{ paper: { sx: { minWidth: 220 } } }}
+      >
+        <MenuItem onClick={handleThemePickerOpen}>
+          <ListItemIcon><PaletteIcon fontSize="small" /></ListItemIcon>
+          <ListItemText
+            primary="Color Theme"
+            secondary={base24Schemes[colorTheme]?.name || colorTheme}
+            secondaryTypographyProps={{ variant: 'caption' }}
+          />
+        </MenuItem>
+        <MenuItem onClick={() => { setDisplaySubAnchor(null); handleClose(); setZoomDialogOpen(true) }}>
+          <ListItemIcon><ZoomInIcon fontSize="small" /></ListItemIcon>
+          <ListItemText
+            primary="Zoom Level"
+            secondary={`${zoomLevel}%`}
+            secondaryTypographyProps={{ variant: 'caption' }}
+          />
+        </MenuItem>
+      </Menu>
+
+      {/* Theme Picker Dialog */}
+      <Dialog
+        open={themePickerOpen}
+        onClose={handleThemePickerClose}
         maxWidth="xs"
         fullWidth
         hideBackdrop
@@ -65,7 +158,7 @@ export default function SettingsMenu() {
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           Color Theme
-          <IconButton size="small" onClick={handleCancel}>
+          <IconButton size="small" onClick={handleThemePickerClose}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -167,10 +260,73 @@ export default function SettingsMenu() {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCancel}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave}>
-            Save
-          </Button>
+          <Button onClick={handleThemePickerClose}>Cancel</Button>
+          <Button variant="contained" onClick={handleThemePickerSave}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Zoom Dialog */}
+      <Dialog
+        open={zoomDialogOpen}
+        onClose={() => setZoomDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        hideBackdrop
+        sx={{ pointerEvents: 'none', '& .MuiDialog-paper': { pointerEvents: 'auto' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Zoom Level
+          <IconButton size="small" onClick={() => setZoomDialogOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, px: 1, py: 2 }}>
+            <Slider
+              value={zoomLevel}
+              onChange={(_, value) => setZoomLevel(value as number)}
+              min={50}
+              max={200}
+              step={10}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(v) => `${v}%`}
+              sx={{ flex: 1 }}
+            />
+            <Typography variant="body2" sx={{ minWidth: 40, textAlign: 'right' }}>
+              {zoomLevel}%
+            </Typography>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Jira Domain Dialog */}
+      <Dialog
+        open={jiraDialogOpen}
+        onClose={() => { setJiraDomain(jiraInput.trim()); setJiraDialogOpen(false) }}
+        maxWidth="xs"
+        fullWidth
+        hideBackdrop
+        sx={{ pointerEvents: 'none', '& .MuiDialog-paper': { pointerEvents: 'auto' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Jira Domain
+          <IconButton size="small" onClick={() => { setJiraDomain(jiraInput.trim()); setJiraDialogOpen(false) }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            placeholder="e.g. mycompany.atlassian.net"
+            size="small"
+            fullWidth
+            value={jiraInput}
+            onChange={(e) => setJiraInput(e.target.value)}
+            helperText={jiraInput ? `Links will open: https://${jiraInput}/browse/...` : 'Not set'}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setJiraDomain(jiraInput.trim()); setJiraDialogOpen(false) }}>Done</Button>
         </DialogActions>
       </Dialog>
     </>

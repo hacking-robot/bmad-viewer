@@ -61,7 +61,7 @@ export default function Header() {
           minHeight: 44,
           gap: 2,
           pl: 2,
-          pr: 1,
+          pr: 2,
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, userSelect: 'none' }}>

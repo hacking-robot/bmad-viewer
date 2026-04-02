@@ -30,6 +30,20 @@ export default function App() {
   const artifactViewerScrollTo = useStore((state) => state.artifactViewerScrollTo)
   const closeArtifactViewer = useStore((state) => state.closeArtifactViewer)
 
+  const zoomLevel = useStore((state) => state.zoomLevel)
+
+  useEffect(() => {
+    const el = document.getElementById('app-content')
+    if (!el) return
+    if (zoomLevel !== 100) {
+      el.style.zoom = `${zoomLevel}%`
+      el.style.height = `${10000 / zoomLevel}vh`
+    } else {
+      el.style.zoom = ''
+      el.style.height = '100vh'
+    }
+  }, [zoomLevel])
+
   useProjectDataEffects()
 
   const hasBrd = bmadScanResult?.modules ? hasBoardModule(bmadScanResult.modules) : projectType !== 'dashboard'
@@ -99,6 +113,7 @@ export default function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box
+        id="app-content"
         sx={{
           height: '100vh',
           display: 'flex',

@@ -305,6 +305,7 @@ export function useProjectData() {
   const addRecentProject = useStore((s) => s.addRecentProject)
   const setViewMode = useStore((s) => s.setViewMode)
   const setProjectName = useStore((s) => s.setProjectName)
+  const setColorTheme = useStore((s) => s.setColorTheme)
 
   const selectProject = useCallback(async () => {
     try {
@@ -344,6 +345,7 @@ export function useProjectData() {
           setProjectType(detection.projectType)
           setOutputFolder(detection.outputFolder)
           setViewMode(detection.projectType === 'dashboard' ? 'dashboard' : 'board')
+          if (project.colorTheme) setColorTheme(project.colorTheme)
           return
         }
       }
@@ -351,7 +353,7 @@ export function useProjectData() {
     } catch {
       await selectProject()
     }
-  }, [selectProject, setProjectName, setProjectType, setOutputFolder, setViewMode])
+  }, [selectProject, setProjectName, setProjectType, setOutputFolder, setViewMode, setColorTheme])
 
   return {
     selectProject,

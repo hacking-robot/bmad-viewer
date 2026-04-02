@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Box, Typography, Tooltip } from '@mui/material'
 import { useStore } from '../../store'
 import { STATUS_COLUMNS, StoryStatus } from '../../types'
@@ -36,6 +36,13 @@ export default function StatusBar() {
   const lastRefreshed = useStore((state) => state.lastRefreshed)
   const viewMode = useStore((state) => state.viewMode)
   const bmadScanResult = useStore((state) => state.bmadScanResult)
+
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30000)
+    return () => clearInterval(id)
+  }, [])
+  void tick
 
   const statusCounts = useMemo(() => {
     const counts: Record<StoryStatus, number> = {
