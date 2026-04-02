@@ -19,20 +19,8 @@
 
 ## Features
 
-### Workflow Dashboard
-- **Dashboard View**: Projects without a board module (BMM/GDS) launch into a dedicated dashboard showing all available workflows and agents
-- **Module Discovery**: Auto-detects BMAD add-on modules (bmb, cis, tea, etc.) with color-coded module chips
-
-### Sprint Board
-- **Sprint Board**: View stories organized across columns (Backlog, Ready for Dev, In Progress, Review, Done, Optional)
-- **Multi-Sprint Support**: Switch between sprints with a dedicated sprint switcher
-- **Sprint Info Panel**: View sprint details including date range, velocity metrics, story point totals grouped by epic, and team progress
-- **Epic Organization**: Stories grouped by epic with color-coded badges
-- **Story Details**: View acceptance criteria, tasks, subtasks, and file changes
-- **Search & Filter**: Find stories by text or filter by epic
-- **Collapsible Columns**: Minimize columns with per-epic state persistence
-
 ### Project Management
+- **Module Discovery**: Auto-detects BMAD add-on modules (bmb, cis, tea, etc.) with color-coded module chips
 - **Project Switcher**: Quickly switch between recent projects (up to 10)
 - **BMAD Scanner**: Auto-discovers agents, workflows, and version info from `_bmad/` directory
 - **Version Gate**: Blocks usage with pre-BMAD 6 projects and prompts for upgrade
