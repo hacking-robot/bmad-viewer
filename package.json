@@ -1,0 +1,38 @@
+{
+  "name": "bmad-viewer",
+  "version": "1.0.0",
+  "description": "A read-only BMAD project viewer - sprint board, stories, epics, and planning artifacts",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@mui/icons-material": "^6.3.0",
+    "@mui/material": "^6.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "react-syntax-highlighter": "^16.1.0",
+    "react-virtuoso": "^4.18.1",
+    "remark-breaks": "^4.0.0",
+    "remark-gfm": "^4.0.0",
+    "yaml": "^2.6.1",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vitest": "^4.0.18"
+  }
+}
