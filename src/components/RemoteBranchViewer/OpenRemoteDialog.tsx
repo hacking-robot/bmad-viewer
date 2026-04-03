@@ -177,7 +177,6 @@ export default function OpenRemoteDialog({ open, onClose }: OpenRemoteDialogProp
               fullWidth
               size="small"
               sx={{ flex: 1 }}
-              helperText="Required for private repos"
             />
             <IconButton
               size="small"
