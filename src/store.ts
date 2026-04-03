@@ -180,11 +180,37 @@ export const useStore = create<AppState>()(
           return { recentProjects: [project, ...filtered].slice(0, MAX_RECENT_PROJECTS) };
         }),
       removeRecentProject: (name, isRemote) =>
-        set((state) => ({
-          recentProjects: state.recentProjects.filter(
-            (p) => !(p.name === name && p.isRemote === isRemote),
-          ),
-        })),
+        set((state) => {
+          const removed = state.recentProjects.find(
+            (p) => p.name === name && p.isRemote === isRemote,
+          );
+          if (!removed) return {};
+          const isCurrentProject =
+            state.projectName === name &&
+            (state.isRemoteProject ?? false) === (isRemote ?? false);
+          return {
+            recentProjects: state.recentProjects.filter(
+              (p) => !(p.name === name && p.isRemote === isRemote),
+            ),
+            ...(isCurrentProject
+              ? {
+                  projectName: null,
+                  projectType: null,
+                  selectedEpicId: null,
+                  collapsedColumnsByEpic: {},
+                  storyOrder: {},
+                  epics: [],
+                  stories: [],
+                  selectedStory: null,
+                  storyContent: null,
+                  sprints: [],
+                  velocityLog: null,
+                  selectedSprintNumber: null,
+                  isMultiSprint: false,
+                }
+              : {}),
+          };
+        }),
 
       epics: [],
       stories: [],

@@ -165,7 +165,7 @@ export default function WelcomeDialog() {
           variant="caption"
           sx={{ display: 'block', textAlign: 'center', color: 'text.disabled', fontSize: '0.65rem', py: 1.5 }}
         >
-          Projects and settings are saved in your browser's local storage only.
+          Settings are saved locally in browser's local storage. Remote projects are read directly from GitHub.
         </Typography>
       </Paper>
       <OpenRemoteDialog open={remoteDialogOpen} onClose={() => setRemoteDialogOpen(false)} />
