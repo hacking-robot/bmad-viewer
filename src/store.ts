@@ -25,6 +25,8 @@ export interface RecentProject {
   projectType: ProjectType;
   outputFolder?: string;
   colorTheme?: string;
+  isRemote?: boolean;
+  remoteUrl?: string;
 }
 
 const MAX_RECENT_PROJECTS = 10;
@@ -53,11 +55,12 @@ interface AppState {
 
   recentProjects: RecentProject[];
   addRecentProject: (project: RecentProject) => void;
-  removeRecentProject: (name: string) => void;
+  removeRecentProject: (name: string, isRemote?: boolean) => void;
 
   epics: Epic[];
   stories: Story[];
   loading: boolean;
+  loadingStatus: string;
   error: string | null;
   lastRefreshed: Date | null;
   isWatching: boolean;
@@ -66,6 +69,7 @@ interface AppState {
   setEpics: (epics: Epic[]) => void;
   setStories: (stories: Story[]) => void;
   setLoading: (loading: boolean) => void;
+  setLoadingStatus: (status: string) => void;
   setError: (error: string | null) => void;
   setLastRefreshed: (date: Date | null) => void;
   setIsWatching: (watching: boolean) => void;
@@ -109,6 +113,22 @@ interface AppState {
   setZoomLevel: (level: number) => void;
   jiraDomain: string;
   setJiraDomain: (domain: string) => void;
+
+  remoteViewingBranch: string | null;
+  isRemoteProject: boolean;
+  remoteProjectUrl: string | null;
+  remoteOwner: string;
+  remoteRepo: string;
+  remoteUpdateAvailable: boolean;
+  hasGitHubToken: boolean;
+  setRemoteViewingBranch: (branch: string | null) => void;
+  setIsRemoteProject: (remote: boolean) => void;
+  setRemoteProjectUrl: (url: string | null) => void;
+  setRemoteOwner: (owner: string) => void;
+  setRemoteRepo: (repo: string) => void;
+  setRemoteUpdateAvailable: (available: boolean) => void;
+  setHasGitHubToken: (hasToken: boolean) => void;
+  isReadOnly: () => boolean;
 
   getFilteredStories: () => Story[];
 }
@@ -155,24 +175,28 @@ export const useStore = create<AppState>()(
       addRecentProject: (project) =>
         set((state) => {
           const filtered = state.recentProjects.filter(
-            (p) => p.name !== project.name,
+            (p) => !(p.name === project.name && p.isRemote === project.isRemote),
           );
           return { recentProjects: [project, ...filtered].slice(0, MAX_RECENT_PROJECTS) };
         }),
-      removeRecentProject: (name) =>
+      removeRecentProject: (name, isRemote) =>
         set((state) => ({
-          recentProjects: state.recentProjects.filter((p) => p.name !== name),
+          recentProjects: state.recentProjects.filter(
+            (p) => !(p.name === name && p.isRemote === isRemote),
+          ),
         })),
 
       epics: [],
       stories: [],
       loading: false,
+      loadingStatus: '',
       error: null,
       lastRefreshed: null,
       isWatching: false,
       setEpics: (epics) => set({ epics }),
       setStories: (stories) => set({ stories }),
-      setLoading: (loading) => set({ loading }),
+      setLoading: (loading) => set({ loading, loadingStatus: loading ? '' : '' }),
+      setLoadingStatus: (loadingStatus) => set({ loadingStatus }),
       setError: (error) => set({ error }),
       setLastRefreshed: (date) => set({ lastRefreshed: date }),
       setIsWatching: (watching) => set({ isWatching: watching }),
@@ -257,6 +281,25 @@ export const useStore = create<AppState>()(
       },
       jiraDomain: "",
       setJiraDomain: (domain) => set({ jiraDomain: domain }),
+
+      remoteViewingBranch: null,
+      isRemoteProject: false,
+      remoteProjectUrl: null,
+      remoteOwner: '',
+      remoteRepo: '',
+      remoteUpdateAvailable: false,
+      hasGitHubToken: false,
+      setRemoteViewingBranch: (branch) => set({ remoteViewingBranch: branch, remoteUpdateAvailable: false }),
+      setIsRemoteProject: (remote) => set({ isRemoteProject: remote }),
+      setRemoteProjectUrl: (url) => set({ remoteProjectUrl: url }),
+      setRemoteOwner: (owner) => set({ remoteOwner: owner }),
+      setRemoteRepo: (repo) => set({ remoteRepo: repo }),
+      setRemoteUpdateAvailable: (available) => set({ remoteUpdateAvailable: available }),
+      setHasGitHubToken: (hasToken) => set({ hasGitHubToken: hasToken }),
+      isReadOnly: () => {
+        const state = get()
+        return state.remoteViewingBranch !== null || state.isRemoteProject
+      },
 
       getFilteredStories: () => {
         const { stories, selectedEpicId, epics, searchQuery } = get();

@@ -9,6 +9,8 @@ export default defineConfig({
       '@': '/src'
     }
   },
+  server: {
+  },
   build: {
     outDir: 'dist'
   }

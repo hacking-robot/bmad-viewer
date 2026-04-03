@@ -9,6 +9,7 @@ import StoryCard from '../StoryCard/StoryCard'
 
 export default function Board() {
   const loading = useStore((state) => state.loading)
+  const loadingStatus = useStore((state) => state.loadingStatus)
   const error = useStore((state) => state.error)
   const allStories = useStore((state) => state.stories)
   const selectedEpicId = useStore((state) => state.selectedEpicId)
@@ -19,11 +20,13 @@ export default function Board() {
   const toggleColumnCollapse = useStore((state) => state.toggleColumnCollapse)
   const storyOrder = useStore((state) => state.storyOrder)
   const setStoryOrder = useStore((state) => state.setStoryOrder)
-
+  const isRemoteProject = useStore((s) => s.isRemoteProject)
+  const remoteViewingBranch = useStore((s) => s.remoteViewingBranch)
+  const isRemote = isRemoteProject || remoteViewingBranch !== null
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5
+        distance: isRemote ? Infinity : 5
       }
     })
   )
@@ -55,7 +58,7 @@ export default function Board() {
       scrollContainerRef.current.scrollLeft = savedScrollLeft
     }
 
-    if (!over) return
+    if (!over || isRemote) return
 
     const storyId = active.id as string
     const overId = over.id as string
@@ -124,9 +127,14 @@ export default function Board() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1.5 }}>
         <CircularProgress size={24} />
-        <Typography color="text.secondary">Loading project...</Typography>
+        <Typography color="text.secondary">Loading project…</Typography>
+        {loadingStatus && (
+          <Typography variant="caption" color="text.secondary" sx={{ opacity: 0.7 }}>
+            {loadingStatus}
+          </Typography>
+        )}
       </Box>
     )
   }

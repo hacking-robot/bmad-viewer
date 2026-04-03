@@ -7,6 +7,10 @@ import { getEpicsFullPath, getSprintStatusFullPath, getSprintsFullPath, hasBoard
 import { parseSprint, parseVelocityLog, buildDevelopmentStatusFromSprints, getDefaultSprintNumber } from '../utils/parseSprint'
 import { mergeWorkflowConfig } from '../utils/workflowMerge'
 import * as fs from '../services/fileSystem'
+import { getFs } from '../services/fsRouter'
+import { setRemoteContext } from '../services/remoteFileReader'
+import { githubApi } from '../services/githubApi'
+import { loadToken } from '../services/tokenManager'
 
 let _skipNextLoadForName: string | null = null
 
@@ -15,7 +19,7 @@ export async function loadProjectData() {
   const { projectName, projectType } = state
   if (!projectName || !projectType) return
 
-  console.log(`[loadProjectData] Starting load: projectType=${projectType}`)
+  console.log(`[loadProjectData] Starting load: projectType=${projectType}, remote=${state.isRemoteProject}`)
 
   if (projectType === 'dashboard') {
     state.setLoading(false)
@@ -24,6 +28,9 @@ export async function loadProjectData() {
 
   state.setLoading(true)
   state.setError(null)
+  state.setLoadingStatus('Scanning project structure…')
+
+  const fileOps = getFs()
 
   try {
     const outputFolder = state.outputFolder
@@ -34,11 +41,11 @@ export async function loadProjectData() {
     let loadedVelocityLog: import('../types').VelocityLog | null = null
 
     const bmadImplDir = `_bmad/${projectType}/4-implementation`
-    const bmadImplResult = await fs.listDirectory(bmadImplDir)
+    const bmadImplResult = await fileOps.listDirectory(bmadImplDir)
     const hasSprintPlanning = (bmadImplResult.dirs || []).includes('bmad-sprint-planning')
 
     const sprintsPath = getSprintsFullPath('', outputFolder)
-    const sprintsDirResult = await fs.listDirectory(sprintsPath)
+    const sprintsDirResult = await fileOps.listDirectory(sprintsPath)
     const sprintFiles = (sprintsDirResult.files || [])
       .filter((f: string) => /^sprint-\d+\.yaml$/.test(f))
       .sort()
@@ -48,7 +55,8 @@ export async function loadProjectData() {
       const parsedSprints: import('../types').SprintData[] = []
 
       for (const file of sprintFiles) {
-        const result = await fs.readFile(`${sprintsPath}${file}`)
+        state.setLoadingStatus(`Reading ${file}…`)
+        const result = await fileOps.readFile(`${sprintsPath}${file}`)
         if (result.content) {
           const parsed = parseSprint(result.content)
           if (parsed) parsedSprints.push(parsed)
@@ -56,6 +64,7 @@ export async function loadProjectData() {
       }
 
       loadedSprints = parsedSprints
+      state.setLoadingStatus('Building development status…')
       const developmentStatusMap = buildDevelopmentStatusFromSprints(parsedSprints)
       sprintStatus = {
         generated: '',
@@ -67,7 +76,7 @@ export async function loadProjectData() {
       }
 
       if ((sprintsDirResult.files || []).includes('velocity-log.yaml')) {
-        const velResult = await fs.readFile(`${sprintsPath}velocity-log.yaml`)
+        const velResult = await fileOps.readFile(`${sprintsPath}velocity-log.yaml`)
         if (velResult.content) {
           try {
             loadedVelocityLog = parseVelocityLog(velResult.content)
@@ -86,19 +95,21 @@ export async function loadProjectData() {
       }
     } else {
       const sprintStatusPath = getSprintStatusFullPath('', projectType, outputFolder)
-      const statusResult = await fs.readFile(sprintStatusPath)
+      const statusResult = await fileOps.readFile(sprintStatusPath)
       if (statusResult.error || !statusResult.content) {
         throw new Error('Failed to read sprint-status.yaml')
       }
       sprintStatus = parseSprintStatus(statusResult.content)
     }
 
+    state.setLoadingStatus('Reading epics…')
+
     const epicsPath = getEpicsFullPath('', projectType, outputFolder)
     let epicsContent: string
-    const epicsResult = await fs.readFile(epicsPath)
+    const epicsResult = await fileOps.readFile(epicsPath)
 
     if (epicsResult.error || !epicsResult.content) {
-      const outputRootEpics = await fs.readFile(`${outputFolder}/epics.md`)
+      const outputRootEpics = await fileOps.readFile(`${outputFolder}/epics.md`)
       if (outputRootEpics.content) {
         epicsContent = outputRootEpics.content
       } else {
@@ -109,7 +120,7 @@ export async function loadProjectData() {
         let epicFiles: string[] = []
         let epicDir = ''
         for (const dir of searchDirs) {
-          const dirFiles = await fs.listDirectory(dir)
+          const dirFiles = await fileOps.listDirectory(dir)
           const found = (dirFiles.files || [])
             .filter((f: string) => /^epic-\d+\.md$/.test(f))
             .sort((a: string, b: string) => {
@@ -129,7 +140,7 @@ export async function loadProjectData() {
         } else {
           const parts: string[] = []
           for (const file of epicFiles) {
-            const result = await fs.readFile(`${epicDir}/${file}`)
+            const result = await fileOps.readFile(`${epicDir}/${file}`)
             if (result.content) parts.push(result.content)
           }
           epicsContent = parts.join('\n\n')
@@ -139,11 +150,17 @@ export async function loadProjectData() {
       epicsContent = epicsResult.content
     }
 
+    state.setLoadingStatus('Parsing stories…')
+
     const epics = parseEpicsUnified(epicsContent, sprintStatus, projectType)
     const stories = getAllStories(epics)
 
+    state.setLoadingStatus('Matching implementation files…')
+
     const implementationPath = `${outputFolder}/implementation-artifacts`
-    const filesResult = await fs.listDirectory(implementationPath)
+    const filesResult = await fileOps.listDirectory(implementationPath)
+
+    state.setLoadingStatus('Matching story files…')
 
     if (filesResult.files) {
       const storyFiles = filesResult.files.filter((f: string) => f.endsWith('.md') && !f.startsWith('story-'))
@@ -208,7 +225,8 @@ export async function loadStoryContent(story: { filePath?: string } | null) {
   }
 
   try {
-    const result = await fs.readFile(story.filePath)
+    const fileOps = getFs()
+    const result = await fileOps.readFile(story.filePath)
     if (result.error || !result.content) {
       useStore.getState().setStoryContent(null)
       return
@@ -225,6 +243,7 @@ export function useProjectDataEffects() {
   const projectName = useStore((s) => s.projectName)
   const projectType = useStore((s) => s.projectType)
   const selectedStory = useStore((s) => s.selectedStory)
+  const isRemoteProject = useStore((s) => s.isRemoteProject)
 
   const lastLoadedKeyRef = useRef<string | null>(null)
 
@@ -234,11 +253,18 @@ export function useProjectDataEffects() {
 
     if (!_hasHydrated || !projectName || !projectType) return
 
-    const loadKey = `${projectName}:${projectType}`
+    const loadKey = `${projectName}:${projectType}:${isRemoteProject}`
     const alreadyLoaded = lastLoadedKeyRef.current === loadKey
     lastLoadedKeyRef.current = loadKey
 
     const run = async () => {
+      if (isRemoteProject) {
+        if (!skipLoad && !alreadyLoaded) {
+          loadProjectData()
+        }
+        return
+      }
+
       if (!fs.getRootHandle()) {
         const restored = await fs.restoreProjectFolder(projectName)
         if (!restored) {
@@ -287,7 +313,7 @@ export function useProjectDataEffects() {
     }
 
     run()
-  }, [_hasHydrated, projectName, projectType])
+  }, [_hasHydrated, projectName, projectType, isRemoteProject])
 
   useEffect(() => {
     if (selectedStory) {
@@ -336,6 +362,29 @@ export function useProjectData() {
   }, [setProjectName, setProjectType, setOutputFolder, setError, addRecentProject, setViewMode])
 
   const switchToProject = useCallback(async (project: import('../store').RecentProject) => {
+    if (project.isRemote && project.remoteUrl) {
+      try {
+        const token = await loadToken()
+        const { owner, repo } = githubApi.parseUrl(project.remoteUrl)
+        const defaultBranch = await githubApi.getDefaultBranch(owner, repo, token || undefined)
+        await setRemoteContext(owner, repo, defaultBranch, token || undefined)
+
+        useStore.getState().setProjectName(`${owner}/${repo}`)
+        useStore.getState().setProjectType(project.projectType)
+        useStore.getState().setOutputFolder('_bmad-output')
+        useStore.getState().setIsRemoteProject(true)
+        useStore.getState().setRemoteProjectUrl(project.remoteUrl)
+        useStore.getState().setRemoteOwner(owner)
+        useStore.getState().setRemoteRepo(repo)
+        useStore.getState().setRemoteViewingBranch(defaultBranch)
+        useStore.getState().setViewMode('board')
+        if (project.colorTheme) setColorTheme(project.colorTheme)
+        return
+      } catch {
+        return
+      }
+    }
+
     try {
       const result = await fs.restoreProjectFolder(project.name)
       if (result) {

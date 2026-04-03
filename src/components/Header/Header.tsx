@@ -26,10 +26,13 @@ import SprintSwitcher from '../SprintSwitcher'
 import SprintInfoPanel from '../SprintInfoPanel'
 import SettingsMenu from '../SettingsMenu'
 import ProjectSwitcher from '../ProjectSwitcher'
+import RemoteBranchTrigger from '../RemoteBranchViewer/RemoteBranchTrigger'
 import { useStore } from '../../store'
 import { hasBoardModule } from '../../utils/projectTypes'
 import { useDocuments, getArtifactTypeLabel, getArtifactTypeColor } from '../../hooks/useDocuments'
 import { loadProjectData } from '../../hooks/useProjectData'
+import { loadToken } from '../../services/tokenManager'
+import { setRemoteContext } from '../../services/remoteFileReader'
 
 export default function Header() {
   const projectType = useStore((state) => state.projectType)
@@ -38,8 +41,8 @@ export default function Header() {
   const bmadScanResult = useStore((state) => state.bmadScanResult)
   const { folders, allFiles, getModuleLabel } = useDocuments()
   const [docsAnchor, setDocsAnchor] = useState<null | HTMLElement>(null)
-  const openArtifactViewer = useStore((state) => state.openArtifactViewer)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set())
+  const openArtifactViewer = useStore((state) => state.openArtifactViewer)
 
   const hasBrd = bmadScanResult?.modules ? hasBoardModule(bmadScanResult.modules) : projectType !== 'dashboard'
   const isGameProject = projectType === 'gds'
@@ -116,6 +119,8 @@ export default function Header() {
             </Badge>
           </IconButton>
         </Tooltip>
+        <RemoteBranchTrigger />
+
         <SettingsMenu />
       </Toolbar>
 
@@ -142,7 +147,15 @@ export default function Header() {
           <Tooltip title="Refresh data">
             <IconButton
               size="small"
-              onClick={() => loadProjectData()}
+              onClick={async () => {
+                const { isRemoteProject, remoteOwner, remoteRepo, remoteViewingBranch } = useStore.getState()
+                if (isRemoteProject && remoteOwner && remoteRepo && remoteViewingBranch) {
+                  const token = await loadToken()
+                  await setRemoteContext(remoteOwner, remoteRepo, remoteViewingBranch, token || undefined)
+                  useStore.getState().setRemoteUpdateAvailable(false)
+                }
+                loadProjectData()
+              }}
               sx={{ color: 'text.secondary' }}
             >
               <RefreshIcon sx={{ fontSize: 18 }} />

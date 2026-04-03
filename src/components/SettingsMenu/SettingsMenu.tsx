@@ -15,6 +15,7 @@ import {
   Typography,
   TextField,
   Slider,
+  Alert,
 } from '@mui/material'
 import SettingsIcon from '@mui/icons-material/Settings'
 import CloseIcon from '@mui/icons-material/Close'
@@ -23,8 +24,14 @@ import PaletteIcon from '@mui/icons-material/Palette'
 import ZoomInIcon from '@mui/icons-material/ZoomIn'
 import ChevronRightIcon from '@mui/icons-material/ChevronRight'
 import LinkIcon from '@mui/icons-material/Link'
+import CloudIcon from '@mui/icons-material/Cloud'
+import VisibilityIcon from '@mui/icons-material/Visibility'
+import LockIcon from '@mui/icons-material/Lock'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import ErrorIcon from '@mui/icons-material/Error'
 import { useStore } from '../../store'
 import { themeList, base24Schemes } from '../../data/themes'
+import { loadToken, saveToken, removeToken, testToken } from '../../services/tokenManager'
 
 export default function SettingsMenu() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -32,7 +39,13 @@ export default function SettingsMenu() {
   const [themePickerOpen, setThemePickerOpen] = useState(false)
   const [zoomDialogOpen, setZoomDialogOpen] = useState(false)
   const [jiraDialogOpen, setJiraDialogOpen] = useState(false)
+  const [tokenDialogOpen, setTokenDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [tokenInput, setTokenInput] = useState('')
+  const [tokenShow, setTokenShow] = useState(false)
+  const [tokenSaving, setTokenSaving] = useState(false)
+  const [tokenTesting, setTokenTesting] = useState(false)
+  const [tokenTestResult, setTokenTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
   const themeBeforePreview = useRef<string | null>(null)
 
   const colorTheme = useStore((state) => state.colorTheme)
@@ -41,6 +54,8 @@ export default function SettingsMenu() {
   const setZoomLevel = useStore((state) => state.setZoomLevel)
   const jiraDomain = useStore((state) => state.jiraDomain)
   const setJiraDomain = useStore((state) => state.setJiraDomain)
+  const hasGitHubToken = useStore((state) => state.hasGitHubToken)
+  const setHasGitHubToken = useStore((state) => state.setHasGitHubToken)
   const [jiraInput, setJiraInput] = useState('')
 
   const open = Boolean(anchorEl)
@@ -115,6 +130,22 @@ export default function SettingsMenu() {
           <ListItemText
             primary="Jira Domain"
             secondary={jiraDomain || 'Not set'}
+            secondaryTypographyProps={{ variant: 'caption' }}
+          />
+        </MenuItem>
+
+        <MenuItem onClick={() => {
+          handleClose()
+          setTokenInput('')
+          setTokenShow(false)
+          setTokenTestResult(null)
+          loadToken().then(t => { if (t) setTokenInput(t) })
+          setTokenDialogOpen(true)
+        }}>
+          <ListItemIcon><CloudIcon fontSize="small" /></ListItemIcon>
+          <ListItemText
+            primary="GitHub Token"
+            secondary={hasGitHubToken ? 'Saved' : 'Not set'}
             secondaryTypographyProps={{ variant: 'caption' }}
           />
         </MenuItem>
@@ -327,6 +358,100 @@ export default function SettingsMenu() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => { setJiraDomain(jiraInput.trim()); setJiraDialogOpen(false) }}>Done</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* GitHub Token Dialog */}
+      <Dialog
+        open={tokenDialogOpen}
+        onClose={() => setTokenDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        hideBackdrop
+        sx={{ pointerEvents: 'none', '& .MuiDialog-paper': { pointerEvents: 'auto' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          GitHub Token
+          <IconButton size="small" onClick={() => setTokenDialogOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            Used to access private repositories and increase rate limits.
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              placeholder="ghp_... or github_pat_..."
+              type={tokenShow ? 'text' : 'password'}
+              size="small"
+              fullWidth
+              value={tokenInput}
+              onChange={(e) => { setTokenInput(e.target.value); setTokenTestResult(null) }}
+            />
+            <IconButton size="small" onClick={() => setTokenShow(!tokenShow)} sx={{ color: 'text.secondary' }}>
+              {tokenShow ? <VisibilityIcon sx={{ fontSize: 18 }} /> : <LockIcon sx={{ fontSize: 18 }} />}
+            </IconButton>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+            Fine-grained token with <strong>Contents: Read</strong> scope, or classic token with <strong>repo</strong> scope.
+          </Typography>
+          {tokenTestResult && (
+            <Alert
+              severity={tokenTestResult.ok ? 'success' : 'error'}
+              icon={tokenTestResult.ok ? <CheckCircleIcon fontSize="inherit" /> : <ErrorIcon fontSize="inherit" />}
+              sx={{ mt: 1.5 }}
+            >
+              {tokenTestResult.msg}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'space-between' }}>
+          {hasGitHubToken && (
+            <Button
+              color="error"
+              size="small"
+              onClick={async () => {
+                removeToken()
+                setHasGitHubToken(false)
+                setTokenInput('')
+                setTokenTestResult(null)
+              }}
+            >
+              Remove
+            </Button>
+          )}
+          <Box sx={{ display: 'flex', gap: 1, ml: 'auto' }}>
+            <Button
+              size="small"
+              disabled={!tokenInput.trim() || tokenTesting}
+              onClick={async () => {
+                setTokenTesting(true)
+                setTokenTestResult(null)
+                const result = await testToken(tokenInput.trim())
+                setTokenTestResult(result.success
+                  ? { ok: true, msg: 'Token is valid' }
+                  : { ok: false, msg: result.error || 'Token test failed' })
+                setTokenTesting(false)
+              }}
+            >
+              {tokenTesting ? 'Testing...' : 'Test'}
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={!tokenInput.trim() || tokenSaving}
+              onClick={async () => {
+                setTokenSaving(true)
+                await saveToken(tokenInput.trim())
+                setHasGitHubToken(true)
+                setTokenSaving(false)
+                setTokenDialogOpen(false)
+              }}
+            >
+              {tokenSaving ? 'Saving...' : 'Save'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
     </>

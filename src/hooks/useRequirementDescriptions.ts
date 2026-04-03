@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useDocuments } from './useDocuments'
-import * as fs from '../services/fileSystem'
+import { getFs } from '../services/fsRouter'
 
 export function useRequirementDescriptions() {
   const { allFiles } = useDocuments()
@@ -13,7 +13,7 @@ export function useRequirementDescriptions() {
     const map = new Map<string, string>()
     for (const file of targets) {
       try {
-        const result = await fs.readFile(file.path)
+        const result = await getFs().readFile(file.path)
         if (!result.content) continue
         for (const line of result.content.split('\n')) {
           const m = line.match(/^[-*]\s+\*{0,2}((?:FR|NFR|ARCH|AR)[-]?[\w-]+)\*{0,2}[:\s]+(.+)$/i)

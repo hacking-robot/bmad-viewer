@@ -68,9 +68,9 @@ export default function ProjectSwitcher() {
     handleClose()
   }
 
-  const handleRemoveProject = (event: React.MouseEvent, name: string) => {
+  const handleRemoveProject = (event: React.MouseEvent, name: string, isRemote?: boolean) => {
     event.stopPropagation()
-    removeRecentProject(name)
+    removeRecentProject(name, isRemote)
   }
 
   const handleOpenProject = () => {
@@ -196,9 +196,9 @@ export default function ProjectSwitcher() {
             )}
             {filteredProjects.map((project, index) => (
               <MenuItem
-                key={project.name}
+                key={`${project.name}-${project.isRemote}`}
                 onClick={() => handleProjectClick(project)}
-                selected={project.name === projectName}
+                selected={project.name === projectName && project.isRemote === useStore.getState().isRemoteProject}
                 onMouseEnter={() => {
                   setHoveredItem(project.name)
                   setPreSelectedIndex(index)
@@ -229,7 +229,7 @@ export default function ProjectSwitcher() {
                 </Box>
                 <IconButton
                   size="small"
-                  onClick={(e) => handleRemoveProject(e, project.name)}
+                  onClick={(e) => handleRemoveProject(e, project.name, project.isRemote)}
                   sx={{
                     opacity: hoveredItem === project.name ? 1 : 0,
                     transition: 'opacity 0.2s',

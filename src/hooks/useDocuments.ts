@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useStore } from '../store'
-import * as fs from '../services/fileSystem'
+import { getFs } from '../services/fsRouter'
 
 // Extended type union covering all artifact/document types
 export type DocumentType =
@@ -132,6 +132,7 @@ function getModuleLabel(mod: string | null): string | null {
 
 async function scanFolder(dirPath: string): Promise<{ mdFiles: string[], yamlFiles: string[], subDirs: string[] }> {
   try {
+    const fs = getFs()
     const result = await fs.listDirectory(dirPath)
     const files = result.files || []
     const dirs = result.dirs || []

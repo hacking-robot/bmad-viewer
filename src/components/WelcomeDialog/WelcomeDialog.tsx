@@ -10,17 +10,21 @@ import {
   ListItemButton,
   ListItemText,
   IconButton,
+  Chip,
 } from '@mui/material'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
+import CloudIcon from '@mui/icons-material/Cloud'
 import CloseIcon from '@mui/icons-material/Close'
 import logoDark from '../../assets/logo-dark.svg'
 import logoLight from '../../assets/logo-light.svg'
 import { useProjectData } from '../../hooks/useProjectData'
 import { useStore } from '../../store'
+import OpenRemoteDialog from '../RemoteBranchViewer/OpenRemoteDialog'
 
 export default function WelcomeDialog() {
   const [error, setError] = useState<string | null>(null)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [remoteDialogOpen, setRemoteDialogOpen] = useState(false)
   const themeMode = useStore((s) => s.themeMode)
   const recentProjects = useStore((s) => s.recentProjects)
   const removeRecentProject = useStore((s) => s.removeRecentProject)
@@ -36,18 +40,19 @@ export default function WelcomeDialog() {
         p: 3,
       }}
     >
-      <Paper
-        elevation={0}
-        sx={{
-          width: '100%',
-          maxWidth: 480,
-          p: 4,
-          borderRadius: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <Stack spacing={3} alignItems="center">
+       <Paper
+         elevation={0}
+         sx={{
+           width: '100%',
+           maxWidth: 480,
+           borderRadius: 3,
+           border: '1px solid',
+           borderColor: 'divider',
+           overflow: 'hidden',
+         }}
+        >
+        <Box sx={{ p: 4 }}>
+         <Stack spacing={3} alignItems="center">
           <Box
             component="img"
             src={themeMode === 'dark' ? logoDark : logoLight}
@@ -59,7 +64,7 @@ export default function WelcomeDialog() {
               BMad Viewer
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              A read-only viewer for your BMAD project stories, epics, and planning artifacts.
+              A read-only viewer for BMad projects.
             </Typography>
           </Box>
 
@@ -69,21 +74,33 @@ export default function WelcomeDialog() {
             </Typography>
           )}
 
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<FolderOpenIcon />}
-            onClick={async () => {
-              setError(null)
-              const ok = await selectProject()
-              if (!ok) {
-                const storeError = useStore.getState().error
-                if (storeError) setError(storeError)
-              }
-            }}
-          >
-            Open Project Folder
-          </Button>
+          <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+            <Button
+              variant="contained"
+              size="large"
+              fullWidth
+              startIcon={<FolderOpenIcon />}
+              onClick={async () => {
+                setError(null)
+                const ok = await selectProject()
+                if (!ok) {
+                  const storeError = useStore.getState().error
+                  if (storeError) setError(storeError)
+                }
+              }}
+            >
+              Local Project
+            </Button>
+            <Button
+              variant="outlined"
+              size="large"
+              fullWidth
+              startIcon={<CloudIcon />}
+              onClick={() => setRemoteDialogOpen(true)}
+            >
+              Remote Project
+            </Button>
+          </Stack>
         </Stack>
 
         {recentProjects.length > 0 && (
@@ -103,16 +120,28 @@ export default function WelcomeDialog() {
                     sx={{ borderRadius: 1, py: 0.5 }}
                   >
                     <ListItemText
-                      primary={project.name}
+                      primary={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <span>{project.name}</span>
+                          {project.isRemote && (
+                            <Chip
+                              icon={<CloudIcon sx={{ fontSize: 12 }} />}
+                              label="Remote"
+                              size="small"
+                              sx={{ height: 20, fontSize: '0.6rem', fontWeight: 600 }}
+                            />
+                          )}
+                        </Box>
+                      }
                       secondary={project.projectType}
-                      primaryTypographyProps={{ variant: 'body2', fontWeight: 500 }}
+                      primaryTypographyProps={{ variant: 'body2', fontWeight: 500, component: 'div' }}
                       secondaryTypographyProps={{ variant: 'caption' }}
                     />
                     <IconButton
                       size="small"
                       onClick={(e) => {
                         e.stopPropagation()
-                        removeRecentProject(project.name)
+                        removeRecentProject(project.name, project.isRemote)
                       }}
                       sx={{
                         opacity: hoveredItem === project.name ? 1 : 0,
@@ -129,7 +158,17 @@ export default function WelcomeDialog() {
             </Box>
           </>
         )}
+        </Box>
+
+        <Divider />
+        <Typography
+          variant="caption"
+          sx={{ display: 'block', textAlign: 'center', color: 'text.disabled', fontSize: '0.65rem', py: 1.5 }}
+        >
+          Projects and settings are saved in your browser's local storage only.
+        </Typography>
       </Paper>
+      <OpenRemoteDialog open={remoteDialogOpen} onClose={() => setRemoteDialogOpen(false)} />
     </Box>
   )
 }

@@ -16,7 +16,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { useThemedSyntax } from '../../hooks/useThemedSyntax'
-import * as fs from '../../services/fileSystem'
+import { getFs } from '../../services/fsRouter'
 
 import { type DocumentType, getArtifactTypeLabel, getArtifactTypeColor } from '../../hooks/useDocuments'
 import type { ArtifactViewerTarget } from '../../store'
@@ -106,7 +106,7 @@ export default function ArtifactViewer({ artifact, scrollToText, onClose }: Arti
       setLoading(true)
       setError(null)
       try {
-        const result = await fs.readFile(artifact.path)
+        const result = await getFs().readFile(artifact.path)
         if (result.error || !result.content) {
           setError(result.error || 'Failed to read file')
         } else {
