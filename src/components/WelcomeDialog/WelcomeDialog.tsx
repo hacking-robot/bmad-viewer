@@ -123,19 +123,23 @@ export default function WelcomeDialog() {
                       primary={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                           <span>{project.name}</span>
+                          <Chip
+                            label={(project.projectType || 'unknown').toUpperCase()}
+                            size="small"
+                            variant="outlined"
+                            sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600 }}
+                          />
                           {project.isRemote && (
                             <Chip
                               icon={<CloudIcon sx={{ fontSize: 12 }} />}
                               label="Remote"
                               size="small"
-                              sx={{ height: 20, fontSize: '0.6rem', fontWeight: 600 }}
+                              sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600 }}
                             />
                           )}
                         </Box>
                       }
-                      secondary={project.projectType}
                       primaryTypographyProps={{ variant: 'body2', fontWeight: 500, component: 'div' }}
-                      secondaryTypographyProps={{ variant: 'caption' }}
                     />
                     <IconButton
                       size="small"

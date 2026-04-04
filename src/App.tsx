@@ -1,7 +1,7 @@
 import { useMemo, useEffect } from 'react'
 import createCache from '@emotion/cache'
 import { CacheProvider } from '@emotion/react'
-import { ThemeProvider, CssBaseline, Box, CircularProgress } from '@mui/material'
+import { ThemeProvider, CssBaseline, Box, CircularProgress, Typography } from '@mui/material'
 import { useStore } from './store'
 import { lightTheme, createBase24Theme } from './theme'
 import { useResolvedTheme } from './hooks/useResolvedTheme'
@@ -9,6 +9,7 @@ import { useProjectDataEffects } from './hooks/useProjectData'
 import Header from './components/Header/Header'
 import Board from './components/Board/Board'
 import { Dashboard } from './components/Dashboard'
+import { SetupGuide } from './components/SetupGuide'
 import StoryDialog from './components/StoryDialog/StoryDialog'
 import WelcomeDialog from './components/WelcomeDialog/WelcomeDialog'
 import StatusBar from './components/StatusBar'
@@ -25,6 +26,9 @@ export default function App() {
   const projectType = useStore((state) => state.projectType)
   const viewMode = useStore((state) => state.viewMode)
   const setViewMode = useStore((state) => state.setViewMode)
+  const boardAvailable = useStore((state) => state.boardAvailable)
+  const loading = useStore((state) => state.loading)
+  const loadingStatus = useStore((state) => state.loadingStatus)
 
   const artifactViewerFile = useStore((state) => state.artifactViewerFile)
   const artifactViewerScrollTo = useStore((state) => state.artifactViewerScrollTo)
@@ -55,6 +59,8 @@ export default function App() {
         if (projectType === 'dashboard') {
           setViewMode('dashboard')
         } else if (hasBrd && viewMode === 'board') {
+          setViewMode('setup')
+        } else if (hasBrd && viewMode === 'setup') {
           setViewMode('dashboard')
         } else if (hasBrd && viewMode === 'dashboard') {
           setViewMode('board')
@@ -63,7 +69,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [viewMode, projectType, hasBrd, setViewMode])
+  }, [viewMode, projectType, hasBrd, boardAvailable, setViewMode])
 
   const { scheme, slug } = useResolvedTheme()
 
@@ -145,7 +151,20 @@ export default function App() {
                   overflow: 'hidden'
                 }}
               >
-                {hasBrd ? <Board /> : <Dashboard />}
+                {hasBrd && boardAvailable && viewMode !== 'setup' ? (
+                  <Board />
+                ) : hasBrd && !loading && (!boardAvailable || viewMode === 'setup') ? (
+                  <SetupGuide />
+                ) : !hasBrd ? (
+                  <Dashboard />
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 1.5 }}>
+                    <CircularProgress size={32} />
+                    {loadingStatus && (
+                      <Typography variant="body2" color="text.secondary">{loadingStatus}</Typography>
+                    )}
+                  </Box>
+                )}
                 <StatusBar />
               </Box>
             </Box>

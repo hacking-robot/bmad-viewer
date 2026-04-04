@@ -10,8 +10,9 @@ import {
 import type { SprintData, VelocityLog } from "./types";
 import type { BmadScanResult } from "./types/bmadScan";
 import type { WorkflowConfig } from "./types/bmadScan";
+import type { SetupProgress } from "./types/bmadScan";
 
-export type ViewMode = "board" | "dashboard";
+export type ViewMode = "board" | "dashboard" | "setup";
 
 export interface ArtifactViewerTarget {
   name: string;
@@ -94,6 +95,11 @@ interface AppState {
 
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
+
+  boardAvailable: boolean;
+  setupProgress: SetupProgress | null;
+  setBoardAvailable: (available: boolean) => void;
+  setSetupProgress: (progress: SetupProgress | null) => void;
 
   sprints: SprintData[];
   velocityLog: VelocityLog | null;
@@ -283,6 +289,11 @@ export const useStore = create<AppState>()(
 
       viewMode: "board",
       setViewMode: (mode) => set({ viewMode: mode }),
+
+      boardAvailable: false,
+      setupProgress: null,
+      setBoardAvailable: (available) => set({ boardAvailable: available }),
+      setSetupProgress: (progress) => set({ setupProgress: progress }),
 
       sprints: [],
       velocityLog: null,

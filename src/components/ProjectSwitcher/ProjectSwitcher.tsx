@@ -6,10 +6,12 @@ import {
   MenuItem,
   IconButton,
   Divider,
-  InputBase
+  InputBase,
+  Chip
 } from '@mui/material'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import CloseIcon from '@mui/icons-material/Close'
+import CloudIcon from '@mui/icons-material/Cloud'
 import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import { useStore, type RecentProject } from '../../store'
 import { useProjectData } from '../../hooks/useProjectData'
@@ -216,16 +218,24 @@ export default function ProjectSwitcher() {
                 }}
               >
                 <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
-                  <Typography variant="body2" fontWeight={500} noWrap>
-                    {project.name}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
-                  >
-                    {project.projectType || 'unknown'}
-                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <Typography variant="body2" fontWeight={500} noWrap>
+                      {project.name}
+                    </Typography>
+                    <Chip
+                      label={(project.projectType || 'unknown').toUpperCase()}
+                      size="small"
+                      sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600 }}
+                    />
+                    {project.isRemote && (
+                      <Chip
+                        icon={<CloudIcon sx={{ fontSize: 12 }} />}
+                        label="Remote"
+                        size="small"
+                        sx={{ height: 18, fontSize: '0.6rem', fontWeight: 600 }}
+                      />
+                    )}
+                  </Box>
                 </Box>
                 <IconButton
                   size="small"

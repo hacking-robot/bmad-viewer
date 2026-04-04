@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef } from 'react'
-import { Box, CircularProgress, Typography, Alert } from '@mui/material'
+import { Box, CircularProgress, Typography, Alert, Button } from '@mui/material'
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, closestCorners, PointerSensor, useSensor, useSensors, UniqueIdentifier } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { useStore } from '../../store'
@@ -142,7 +142,16 @@ export default function Board() {
   if (error) {
     return (
       <Box sx={{ p: 3, flex: 1 }}>
-        <Alert severity="error">{error}</Alert>
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" onClick={() => useStore.getState().setViewMode('setup')}>
+              Setup Guide
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Box>
     )
   }

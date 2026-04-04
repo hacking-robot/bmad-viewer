@@ -95,3 +95,65 @@ export interface BmadScanResult {
   outputFolder?: string
   scannedAt: string
 }
+
+/** Raw row from bmad-help.csv */
+export interface BmadHelpRow {
+  module: string
+  phase: string
+  name: string
+  code: string
+  sequence: string
+  workflowFile: string
+  command: string
+  required: boolean
+  agentName: string
+  agentCommand: string
+  agentDisplayName: string
+  agentTitle: string
+  options: string
+  description: string
+  outputLocation: string
+  outputs: string
+}
+
+/** Raw row from agent-manifest.csv */
+export interface AgentManifestRow {
+  name: string
+  displayName: string
+  title: string
+  icon: string
+  capabilities: string
+  role: string
+  identity: string
+  communicationStyle: string
+  principles: string
+  module: string
+  path: string
+  canonicalId: string
+}
+
+/** Single setup step with completion status */
+export interface SetupStep {
+  id: string
+  name: string
+  label: string
+  description: string
+  phase: string
+  required: boolean
+  completed: boolean
+  outputs: string
+  outputLocation: string
+  agentName: string
+  agentCommand: string
+  moduleName: string
+}
+
+/** Overall setup progress */
+export interface SetupProgress {
+  steps: SetupStep[]
+  requiredTotal: number
+  requiredCompleted: number
+  percentComplete: number
+  boardReady: boolean
+  agents: AgentManifestRow[]
+}

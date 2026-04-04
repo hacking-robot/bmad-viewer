@@ -6,6 +6,7 @@ import { parseStoryContent } from '../utils/parseStory'
 import { getEpicsFullPath, getSprintStatusFullPath, getSprintsFullPath, hasBoardModule } from '../utils/projectTypes'
 import { parseSprint, parseVelocityLog, buildDevelopmentStatusFromSprints, getDefaultSprintNumber } from '../utils/parseSprint'
 import { mergeWorkflowConfig } from '../utils/workflowMerge'
+import { computeSetupProgress } from '../utils/parseBmadHelp'
 import * as fs from '../services/fileSystem'
 import { getFs } from '../services/fsRouter'
 import { setRemoteContext } from '../services/remoteFileReader'
@@ -84,20 +85,38 @@ export async function loadProjectData() {
         }
       }
     } else if (hasSprintPlanning) {
-      detectedMultiSprint = true
-      sprintStatus = {
-        generated: '',
-        project: '',
-        projectKey: '',
-        trackingSystem: '',
-        storyLocation: '',
-        developmentStatus: {},
+      // Sprint planning workflow exists in _bmad install, but no sprint data yet.
+      // Check if there are any actual sprint artifacts — if not, show setup guide.
+      const sprintStatusPath = getSprintStatusFullPath('', projectType, outputFolder)
+      const statusResult = await fileOps.readFile(sprintStatusPath)
+      if (statusResult.error || !statusResult.content) {
+        // No sprint-status.yaml and no sprint files — show setup guide
+        state.setBoardAvailable(false)
+        try {
+          const progress = await computeSetupProgress(outputFolder)
+          state.setSetupProgress(progress)
+        } catch {
+          state.setSetupProgress(null)
+        }
+        useStore.getState().setLoading(false)
+        return
       }
+      detectedMultiSprint = true
+      sprintStatus = parseSprintStatus(statusResult.content)
     } else {
       const sprintStatusPath = getSprintStatusFullPath('', projectType, outputFolder)
       const statusResult = await fileOps.readFile(sprintStatusPath)
       if (statusResult.error || !statusResult.content) {
-        throw new Error('Failed to read sprint-status.yaml')
+        // No sprint-status.yaml — load setup progress and show setup guide
+        state.setBoardAvailable(false)
+        try {
+          const progress = await computeSetupProgress(outputFolder)
+          state.setSetupProgress(progress)
+        } catch {
+          state.setSetupProgress(null)
+        }
+        useStore.getState().setLoading(false)
+        return
       }
       sprintStatus = parseSprintStatus(statusResult.content)
     }
@@ -198,6 +217,7 @@ export async function loadProjectData() {
       epics,
       stories,
       lastRefreshed: new Date(),
+      boardAvailable: true,
     })
 
     const storeState = useStore.getState()
@@ -213,6 +233,13 @@ export async function loadProjectData() {
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Failed to load project data'
     useStore.getState().setError(msg)
+    useStore.getState().setBoardAvailable(false)
+    try {
+      const progress = await computeSetupProgress(state.outputFolder)
+      useStore.getState().setSetupProgress(progress)
+    } catch {
+      // ignore
+    }
   } finally {
     useStore.getState().setLoading(false)
   }
@@ -362,6 +389,22 @@ export function useProjectData() {
   }, [setProjectName, setProjectType, setOutputFolder, setError, addRecentProject, setViewMode])
 
   const switchToProject = useCallback(async (project: import('../store').RecentProject) => {
+    // Clear board state from previous project before switching
+    useStore.setState({
+      epics: [],
+      stories: [],
+      selectedStory: null,
+      storyContent: null,
+      selectedEpicId: null,
+      collapsedColumnsByEpic: {},
+      storyOrder: {},
+      sprints: [],
+      velocityLog: null,
+      selectedSprintNumber: null,
+      isMultiSprint: false,
+      searchQuery: '',
+    })
+
     if (project.isRemote && project.remoteUrl) {
       try {
         const token = await loadToken()

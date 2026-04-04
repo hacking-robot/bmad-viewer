@@ -20,6 +20,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import DashboardIcon from '@mui/icons-material/Dashboard'
 import SearchBar from '../SearchBar/SearchBar'
 import EpicFilter from '../EpicFilter/EpicFilter'
 import SprintSwitcher from '../SprintSwitcher'
@@ -39,6 +40,8 @@ export default function Header() {
   const themeMode = useStore((state) => state.themeMode)
   const viewMode = useStore((state) => state.viewMode)
   const bmadScanResult = useStore((state) => state.bmadScanResult)
+  const boardAvailable = useStore((state) => state.boardAvailable)
+  const setViewMode = useStore((state) => state.setViewMode)
   const { folders, allFiles, getModuleLabel } = useDocuments()
   const [docsAnchor, setDocsAnchor] = useState<null | HTMLElement>(null)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set())
@@ -119,12 +122,29 @@ export default function Header() {
             </Badge>
           </IconButton>
         </Tooltip>
+        {hasBrd && (
+          <Tooltip title="Project Dashboard">
+            <IconButton
+              size="small"
+              onClick={() => setViewMode(viewMode === 'setup' ? 'board' : 'setup')}
+              sx={{ color: viewMode === 'setup' ? 'primary.main' : 'text.secondary' }}
+            >
+              <Badge
+                variant="dot"
+                color="warning"
+                invisible={boardAvailable}
+              >
+                <DashboardIcon fontSize="small" />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+        )}
         <RemoteBranchTrigger />
 
         <SettingsMenu />
       </Toolbar>
 
-      {hasBrd && viewMode === 'board' && (
+      {hasBrd && viewMode === 'board' && boardAvailable && (
         <Toolbar
           variant="dense"
           sx={{
