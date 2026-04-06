@@ -20,6 +20,7 @@ import {
   Paper,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
+import RefreshIcon from '@mui/icons-material/Refresh'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
@@ -33,6 +34,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { useStore } from '../../store'
 import { useThemedSyntax } from '../../hooks/useThemedSyntax'
 import { useRequirementLookup } from '../../hooks/useRequirementLookup'
+import { loadStoryContent } from '../../hooks/useProjectData'
 import { EPIC_COLORS, STATUS_COLUMNS } from '../../types'
 
 
@@ -203,6 +205,18 @@ export default function StoryDialog() {
           </Box>
         </Box>
 
+        <Tooltip title="Refresh story from file">
+          <IconButton
+            onClick={() => loadStoryContent(selectedStory)}
+            sx={{
+              position: 'absolute',
+              right: 48,
+              top: 16
+            }}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
         <IconButton
           onClick={handleClose}
           sx={{
